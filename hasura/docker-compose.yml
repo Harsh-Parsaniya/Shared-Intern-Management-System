@@ -1,0 +1,34 @@
+version: '3.8'
+ 
+services:
+  # 1. The Database (PostgreSQL)
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: internship_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+ 
+  # 2. The GraphQL Engine (Hasura)
+  hasura:
+    image: hasura/graphql-engine:v2.33.0
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    restart: always
+    environment:
+      # This exact string tells Hasura how to log into the Postgres database above
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:mysecretpassword@postgres:5432/internship_db
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true" # Turns on the graphical dashboard
+      HASURA_GRAPHQL_DEV_MODE: "true"
+      HASURA_GRAPHQL_ADMIN_SECRET: myadminsecretkey # Our local master password
+ 
+# This volume acts as a virtual hard drive so our data survives a restart
+volumes:
+  db_data:

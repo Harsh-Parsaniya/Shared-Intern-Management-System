@@ -1,0 +1,82 @@
+# Sample GraphQL Queries and Mutations for Hasura
+
+## Users & Departments
+
+# 1. Fetch all interns with department info (Admin)
+query GetAllInterns {
+  interns {
+    id
+    college_name
+    start_date
+    end_date
+    user {
+      name
+      email
+    }
+    department {
+      name
+    }
+  }
+}
+
+# 2. Add a new department
+mutation AddDepartment($name: String!) {
+  insert_departments_one(object: { name: $name }) {
+    id
+    name
+  }
+}
+
+# 3. Register a new user
+mutation RegisterUser($name: String!, $email: String!, $password: String!, $role: String!, $department_id: uuid) {
+  insert_users_one(object: {
+    name: $name,
+    email: $email,
+    password: $password,
+    role: $role,
+    department_id: $department_id
+  }) {
+    id
+    email
+  }
+}
+
+## Intern Management
+
+# 4. Add an intern
+mutation AddIntern($user_id: uuid!, $college_name: String!, $department_id: uuid!, $start_date: date!, $end_date: date!) {
+  insert_interns_one(object: {
+    user_id: $user_id,
+    college_name: $college_name,
+    department_id: $department_id,
+    start_date: $start_date,
+    end_date: $end_date
+  }) {
+    id
+    college_name
+  }
+}
+
+## Feedback
+
+# 5. Submit feedback (Intern)
+mutation SubmitFeedback($intern_id: uuid!, $message: String!, $rating: Int!) {
+  insert_feedback_one(object: {
+    intern_id: $intern_id,
+    message: $message,
+    rating: $rating
+  }) {
+    id
+    created_at
+  }
+}
+
+# 6. View feedback for a specific intern
+query GetInternFeedback($intern_id: uuid!) {
+  feedback(where: { intern_id: { _eq: $intern_id } }) {
+    id
+    message
+    rating
+    created_at
+  }
+}
