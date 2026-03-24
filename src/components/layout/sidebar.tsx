@@ -9,7 +9,8 @@ import {
   LogOut,
   Menu,
   X,
-  Home
+  Home,
+  Building2
 } from "lucide-react";
 import { useState } from "react";
 import { clsx, type ClassValue } from "clsx";
@@ -21,6 +22,7 @@ function cn(...inputs: ClassValue[]) {
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard", icon: Home, roles: ["admin", "department", "intern"] },
+  { name: "Departments", href: "/departments", icon: Building2, roles: ["admin", "department"] },
   { name: "Interns", href: "/interns", icon: Users, roles: ["admin", "department", "intern"] },
   { name: "Feedback", href: "/feedback", icon: MessageSquare, roles: ["admin", "department", "intern"] },
   { name: "Settings", href: "/settings", icon: Settings, roles: ["admin"] },
@@ -43,10 +45,10 @@ export function Sidebar({ role }: { role: string }) {
     <>
       {/* Mobile Menu Toggle */}
       <button 
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-md shadow-lg"
+        className="lg:hidden fixed top-5 left-5 z-[60] p-3 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition-all"
         onClick={() => setIsOpen(!isOpen)}
       >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
+        {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
       {/* Sidebar Container */}
@@ -56,11 +58,11 @@ export function Sidebar({ role }: { role: string }) {
       )}>
         <div className="flex flex-col h-full">
           {/* Logo Section */}
-          <div className="flex items-center justify-center h-20 border-b border-slate-100">
+          <Link href="/dashboard" className="flex items-center justify-center h-20 border-b border-slate-100 hover:bg-slate-50 transition-colors">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
               IMS Admin
             </h1>
-          </div>
+          </Link>
 
           {/* Navigation Items */}
           <nav className="flex-1 px-4 py-6 space-y-1">

@@ -53,7 +53,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100">
+        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100">
           <form onSubmit={handleSubmit} className="space-y-6">
             {mode === "signup" && (
               <div>

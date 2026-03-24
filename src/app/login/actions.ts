@@ -1,91 +1,106 @@
 "use server";
 
 import { cookies } from "next/headers";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { createToken } from "@/lib/auth-utils";
 import { comparePassword, hashPassword } from "@/lib/password-utils";
 import { Role } from "@/types";
+import { client } from "@/lib/apollo-client";
+import { LOGIN_USER, SIGN_UP_USER } from "@/lib/graphql";
 
 export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
+  try {
+    const { data } = await client.query({
+      query: LOGIN_USER,
+      variables: { email },
+      fetchPolicy: "no-cache",
+    });
 
-  const _password = formData.get("password") as string;
+    const user = data?.users?.[0];
 
-  // MOCK AUTHENTICATION LOGIC
-  // In a real app, you would fetch the user from Hasura/PostgreSQL
-  // and compare the input password with the stored hash.
+    if (!user) {
+      return { success: false, error: "Invalid email or password" };
+    }
 
-  // Mock stored hash (hash of 'admin123')
-  // const MOCK_ADMIN_HASH = "$2a$10$w66yP9lX.0U8X/xZ8X.X.uX8X.X.uX8X.X.uX8X.X.uX8X.X.u"; 
+    const isPasswordValid = await comparePassword(password, user.password);
 
-  // For the sake of this mock, we'll "verify" any password if the email matches admin/dept
-  // but show the comparison logic.
+    if (!isPasswordValid) {
+      return { success: false, error: "Invalid email or password" };
+    }
 
-  let role: Role = 'intern';
-  const userId = 'mock-user-id';
-  let departmentId = null;
+    const token = await createToken({
+      userId: user.id,
+      role: user.role as Role,
+      departmentId: user.department_id,
+    });
 
-  if (email.includes('admin')) {
-    role = 'admin';
-  } else if (email.includes('dept')) {
-    role = 'department';
-    departmentId = 'mock-dept-id';
+    const cookieStore = await cookies();
+    cookieStore.set("auth-token", token, {
+      httpOnly: false, // Accessible by client-side Apollo Client
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 2, // 2 hours
+      path: "/",
+    });
+
+    return { success: true, role: user.role, error: null };
+  } catch (err: any) {
+    console.error("Login error:", err);
+    return { success: false, error: "An error occurred during login" };
   }
-
-  // Example of how comparison would work:
-  // const isValid = await comparePassword(password, userFromDb.password);
-  // if (!isValid) return { success: false, error: 'Invalid password' };
-
-  const token = await createToken({ 
-    userId, 
-    role, 
-    departmentId 
-  });
-
-  const cookieStore = await cookies();
-  cookieStore.set("auth-token", token, {
-    httpOnly: false, // Set to false so Apollo Client can read it on the client side
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 2, // 2 hours
-    path: "/",
-  });
-
-  return { success: true, role, error: null };
 }
 
 export async function signUpAction(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const role = (formData.get("role") as Role) || 'intern';
+  const role = (formData.get("role") as Role) || "intern";
 
-  // In a real app, you would save user to database here
-  await hashPassword(password); // Just to simulate work
+  try {
+    const hashedPassword = await hashPassword(password);
 
-  // MOCK SAVE LOGIC
-  // In a real app, you would save this to Hasura/PostgreSQL
-  console.log(`User signed up: ${name} (${email}) with role ${role}`);
+    const { data } = await client.mutate({
+      mutation: SIGN_UP_USER,
+      variables: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+      },
+    });
 
-  // Auto-login after sign up
-  const userId = 'new-user-id';
-  const token = await createToken({ 
-    userId, 
-    role, 
-    departmentId: null 
-  });
+    const newUser = data?.insert_users_one;
 
-  const cookieStore = await cookies();
-  cookieStore.set("auth-token", token, {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 2,
-    path: "/",
-  });
+    if (!newUser) {
+      return { success: false, error: "Failed to create user" };
+    }
 
-  return { success: true, role, error: null };
+    // Auto-login after sign up
+    const token = await createToken({
+      userId: newUser.id,
+      role: newUser.role as Role,
+      departmentId: null,
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set("auth-token", token, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 2,
+      path: "/",
+    });
+
+    return { success: true, role: newUser.role, error: null };
+  } catch (err: any) {
+    console.error("Signup error:", err);
+    if (err.message?.includes("Uniqueness violation")) {
+      return { success: false, error: "Email already exists" };
+    }
+    return { success: false, error: "An error occurred during sign up" };
+  }
 }
 
 export async function logoutAction() {

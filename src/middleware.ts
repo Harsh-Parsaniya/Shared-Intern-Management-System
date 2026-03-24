@@ -32,7 +32,15 @@ export async function middleware(request: NextRequest) {
   // 4. Role-based checks
   const role = payload.role;
   
-  if (pathname.startsWith("/settings") && role !== "admin") {
+  // Admin-only routes
+  const adminOnlyRoutes = ["/departments", "/settings"];
+  if (adminOnlyRoutes.some(route => pathname.startsWith(route)) && role !== "admin") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Management routes (Admin & Dept only)
+  const managementRoutes = ["/interns", "/feedback"];
+  if (managementRoutes.some(route => pathname.startsWith(route)) && role === "intern") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
