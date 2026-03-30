@@ -18,7 +18,7 @@ export async function loginAction(formData: FormData) {
       fetchPolicy: "no-cache",
     });
 
-    const user = data?.users?.[0];
+    const user = (data as any)?.users?.[0];
 
     if (!user) {
       return { success: false, error: "Invalid email or password" };
@@ -34,6 +34,8 @@ export async function loginAction(formData: FormData) {
       userId: user.id,
       role: user.role as Role,
       departmentId: user.department_id,
+      name: user.name,
+      email,
     });
 
     const cookieStore = await cookies();
@@ -71,17 +73,18 @@ export async function signUpAction(formData: FormData) {
       },
     });
 
-    const newUser = data?.insert_users_one;
+    const newUser = (data as any)?.insert_users_one;
 
     if (!newUser) {
       return { success: false, error: "Failed to create user" };
     }
 
-    // Auto-login after sign up
     const token = await createToken({
       userId: newUser.id,
       role: newUser.role as Role,
       departmentId: null,
+      name,
+      email,
     });
 
     const cookieStore = await cookies();

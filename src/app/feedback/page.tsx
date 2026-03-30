@@ -23,6 +23,8 @@ function cn(...inputs: ClassValue[]) {
 export default function FeedbackPage() {
   const [role, setRole] = useState<string>("intern");
   const [userId, setUserId] = useState<string>("");
+  const [userDeptId, setUserDeptId] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"department" | "all">("department");
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -44,6 +46,7 @@ export default function FeedbackPage() {
           const payload = JSON.parse(atob(token.split('.')[1]));
           setRole(payload.role || "intern");
           setUserId(payload.userId || "");
+          setUserDeptId(payload.departmentId || "");
         } catch {
           setRole("intern");
         }
@@ -84,19 +87,51 @@ export default function FeedbackPage() {
 
   const feedbackList = data?.feedback || [];
 
+  // Filtering logic
+  const displayFeedback = feedbackList.filter((fb: Feedback) => {
+    if (activeTab === "all") return true;
+    if (role === "admin") return true;
+    return fb.intern.department_id === userDeptId;
+  });
+
   return (
     <MainLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Feedback & Reviews
-          </h1>
-          <p className="text-slate-500 mt-2 font-medium">
-            {role === 'intern' 
-              ? "Tell us about your internship experience." 
-              : "Review anonymous feedback from your interns."}
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+              Feedback <span className="text-indigo-600">Archive</span>
+            </h1>
+            <p className="text-slate-500 mt-2 font-medium">
+              {role === 'intern' 
+                ? "Share your internship journey with us." 
+                : "Comprehensive review of program and department feedback."}
+            </p>
+          </div>
+          
+          {role !== 'intern' && (
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit self-start md:self-center">
+              <button 
+                onClick={() => setActiveTab("department")}
+                className={cn(
+                  "px-6 py-2 rounded-xl text-xs font-black transition-all",
+                  activeTab === "department" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                Department
+              </button>
+              <button 
+                onClick={() => setActiveTab("all")}
+                className={cn(
+                  "px-6 py-2 rounded-xl text-xs font-black transition-all",
+                  activeTab === "all" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                Overall
+              </button>
+            </div>
+          )}
         </div>
 
         {role === 'intern' ? (
@@ -159,7 +194,7 @@ export default function FeedbackPage() {
         ) : (
           /* Admin/Department View: Feedback List */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {feedbackList.map((fb: Feedback) => (
+            {displayFeedback.map((fb: Feedback) => (
               <div 
                 key={fb.id}
                 className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative"
@@ -168,14 +203,19 @@ export default function FeedbackPage() {
                   <Quote size={40} />
                 </div>
                 
-                <div className="flex items-center gap-2 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      size={14} 
-                      className={i < fb.rating ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"} 
-                    />
-                  ))}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-1.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        size={14} 
+                        className={i < fb.rating ? "text-amber-400 fill-amber-400" : "text-slate-200"} 
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
+                    {fb.intern.department?.name || "General"}
+                  </span>
                 </div>
 
                 <p className="text-slate-700 text-sm leading-relaxed mb-6 font-medium">
@@ -183,11 +223,14 @@ export default function FeedbackPage() {
                 </p>
 
                 <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                   <div className="flex items-center gap-2">
-                     <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs">
-                        <User size={14} />
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs shadow-sm">
+                        {fb.intern.user.name.charAt(0)}
                      </div>
-                     <span className="text-xs font-bold text-slate-700">{fb.intern?.user?.name || "Anonymous"}</span>
+                     <div>
+                        <p className="text-xs font-bold text-slate-800">{fb.intern.user.name}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Intern</p>
+                     </div>
                    </div>
                    <div className="flex items-center gap-1 text-slate-400">
                      <Calendar size={12} />

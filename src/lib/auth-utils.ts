@@ -9,8 +9,10 @@ export async function createToken(payload: {
   userId: string;
   role: Role;
   departmentId?: string | null;
+  name: string;
+  email: string;
 }) {
-  const { userId, role, departmentId } = payload;
+  const { userId, role, departmentId, name, email } = payload;
 
   const hasuraClaims = {
     "x-hasura-allowed-roles": [role],
@@ -24,6 +26,8 @@ export async function createToken(payload: {
     userId,
     role,
     departmentId,
+    name,
+    email,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()

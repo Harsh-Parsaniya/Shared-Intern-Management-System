@@ -27,7 +27,8 @@ import {
   X,
   Calendar
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { sendInternCredentialsEmail } from "./actions";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import jsPDF from "jspdf";
@@ -39,6 +40,24 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function InternsPage() {
+  const [userRole, setUserRole] = useState<string>("");
+
+  useEffect(() => {
+    const getCookie = (cookieName: string) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${cookieName}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift();
+      return '';
+    };
+    const token = getCookie('auth-token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setUserRole(payload.role || "");
+      } catch { /* ignore */ }
+    }
+  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDept, setFilterDept] = useState("");
   const [filterCollege, setFilterCollege] = useState("");
@@ -55,6 +74,7 @@ export default function InternsPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
     college_name: "",
     department_id: "",
     start_date: "",
@@ -158,6 +178,8 @@ export default function InternsPage() {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const { hash } = await import("bcryptjs");
+      const hashedPassword = await hash(formData.password, 10);
       await addInternMutation({
         variables: {
           object: {
@@ -169,7 +191,7 @@ export default function InternsPage() {
               data: {
                 name: formData.name,
                 email: formData.email,
-                password: "password123",
+                password: hashedPassword,
                 role: "intern",
                 department_id: formData.department_id
               }
@@ -177,6 +199,8 @@ export default function InternsPage() {
           }
         }
       });
+      // Send credentials email
+      await sendInternCredentialsEmail(formData.email, formData.password, formData.name);
       setIsAddModalOpen(false);
       refetch();
     } catch (err) {
@@ -190,6 +214,7 @@ export default function InternsPage() {
     setFormData({
       name: intern.user.name,
       email: intern.user.email,
+      password: "",
       college_name: intern.college_name,
       department_id: intern.department_id || "",
       start_date: intern.start_date,
@@ -247,6 +272,7 @@ export default function InternsPage() {
     setFormData({
       name: "",
       email: "",
+      password: "",
       college_name: "",
       department_id: "",
       start_date: "",
@@ -277,13 +303,15 @@ export default function InternsPage() {
               Manage and monitor all intern profiles in the system.
             </p>
           </div>
-          <button
-            onClick={handleAddNewClick}
-            className="inline-flex items-center justify-center px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 w-full sm:w-auto"
-          >
-            <Plus size={18} className="mr-2" />
-            Add New Intern
-          </button>
+          {userRole === "admin" && (
+            <button
+              onClick={handleAddNewClick}
+              className="inline-flex items-center justify-center px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 w-full sm:w-auto"
+            >
+              <Plus size={18} className="mr-2" />
+              Add New Intern
+            </button>
+          )}
         </div>
 
         {/* Filters & Actions Bar */}
@@ -335,7 +363,7 @@ export default function InternsPage() {
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
                       >
                         <option value="">All Departments</option>
-                        {departments.map((dept: any) => (
+                        {departments.map((dept: Department) => (
                           <option key={dept.id} value={dept.name}>{dept.name}</option>
                         ))}
                       </select>
@@ -443,7 +471,7 @@ export default function InternsPage() {
                   <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">End Date</th>
                   <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Duration</th>
                   <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                  {userRole === "admin" && <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -489,12 +517,14 @@ export default function InternsPage() {
                         {"Active"}
                       </span>
                     </td>
+                    {userRole === "admin" && (
                     <td className="px-6 py-5 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => handleEditClick(intern)} className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-white border border-transparent hover:border-slate-100 transition-all"><Edit size={18} /></button>
                         <button onClick={() => handleDeleteClick(intern)} className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-white border border-transparent hover:border-slate-100 transition-all"><Trash size={18} /></button>
                       </div>
                     </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -566,7 +596,22 @@ export default function InternsPage() {
                 />
               </div>
 
-              {/* Row 3: Department */}
+              {/* Row 3: Password (only for Add mode) */}
+              {isAddModalOpen && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Password</label>
+                  <input
+                    required
+                    type="password"
+                    placeholder="Set a password"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* Row 4: Department */}
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Department</label>
                 <select
@@ -576,13 +621,13 @@ export default function InternsPage() {
                   onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
                 >
                   <option value="">Select Department</option>
-                  {departments.map((dept: any) => (
+                  {departments.map((dept: Department) => (
                     <option key={dept.id} value={dept.id}>{dept.name}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Row 4: Start Date and End Date */}
+              {/* Row 5: Start Date and End Date */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Start Date</label>
@@ -637,7 +682,7 @@ export default function InternsPage() {
               Delete Intern
             </h2>
             <p className="text-slate-500 font-medium text-sm leading-relaxed mb-6">
-              Delete <span className="text-slate-900 font-bold">{selectedIntern.user.name}</span>'s record? This cannot be undone.
+              Delete <span className="text-slate-900 font-bold">{selectedIntern.user.name}</span>&apos;s record? This cannot be undone.
             </p>
             <div className="flex gap-3">
               <button

@@ -44,6 +44,12 @@ export interface InternsData {
 export interface Department {
   id: string;
   name: string;
+  manager_id?: string | null;
+  manager?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   interns_aggregate?: {
     aggregate: {
       count: number;
@@ -64,6 +70,10 @@ export interface Feedback {
     user: {
       name: string;
     };
+    department_id: string;
+    department: {
+      name: string;
+    } | null;
   };
 }
 
@@ -88,6 +98,13 @@ export const GET_DASHBOARD_STATS = gql`
       id
       college_name
       user {
+        name
+      }
+    }
+    interns {
+      id
+      college_name
+      department {
         name
       }
     }
@@ -126,6 +143,10 @@ export const GET_FEEDBACK = gql`
         user {
           name
         }
+        department_id
+        department {
+          name
+        }
       }
     }
   }
@@ -148,6 +169,12 @@ export const GET_DEPARTMENTS = gql`
     departments(order_by: {name: asc}) {
       id
       name
+      manager_id
+      manager {
+        id
+        name
+        email
+      }
       interns_aggregate {
         aggregate {
           count
@@ -265,8 +292,8 @@ export const DELETE_INTERN = gql`
 `;
 
 export const ADD_DEPARTMENT = gql`
-  mutation AddDepartment($name: String!) {
-    insert_departments_one(object: {name: $name}) {
+  mutation AddDepartment($name: String!, $manager_id: uuid) {
+    insert_departments_one(object: {name: $name, manager_id: $manager_id}) {
       id
       name
     }
@@ -274,8 +301,8 @@ export const ADD_DEPARTMENT = gql`
 `;
 
 export const UPDATE_DEPARTMENT = gql`
-  mutation UpdateDepartment($id: uuid!, $name: String!) {
-    update_departments_by_pk(pk_columns: {id: $id}, _set: {name: $name}) {
+  mutation UpdateDepartment($id: uuid!, $name: String!, $manager_id: uuid) {
+    update_departments_by_pk(pk_columns: {id: $id}, _set: {name: $name, manager_id: $manager_id}) {
       id
       name
     }
@@ -285,6 +312,80 @@ export const UPDATE_DEPARTMENT = gql`
 export const DELETE_DEPARTMENT = gql`
   mutation DeleteDepartment($id: uuid!) {
     delete_departments_by_pk(id: $id) {
+      id
+    }
+  }
+`;
+
+export const GET_DEPARTMENT_USERS = gql`
+  query GetDepartmentUsers {
+    users(where: {role: {_eq: "department"}}, order_by: {name: asc}) {
+      id
+      name
+      email
+    }
+  }
+`;
+
+export const GET_MANAGERS = gql`
+  query GetManagers {
+    users(where: {role: {_eq: "department"}}, order_by: {name: asc}) {
+      id
+      name
+      email
+      department_id
+    }
+  }
+`;
+
+export const ADD_MANAGER = gql`
+  mutation AddManager($name: String!, $email: String!, $password: String!, $department_id: uuid) {
+    insert_users_one(object: {name: $name, email: $email, password: $password, role: "department", department_id: $department_id}) {
+      id
+      name
+    }
+  }
+`;
+
+export const UPDATE_MANAGER = gql`
+  mutation UpdateManager($id: uuid!, $name: String!, $email: String!, $department_id: uuid) {
+    update_users_by_pk(pk_columns: {id: $id}, _set: {name: $name, email: $email, department_id: $department_id}) {
+      id
+      name
+    }
+  }
+`;
+
+export const DELETE_MANAGER = gql`
+  mutation DeleteManager($id: uuid!) {
+    delete_users_by_pk(id: $id) {
+      id
+    }
+  }
+`;
+
+export const SYNC_USER_DEPARTMENT = gql`
+  mutation SyncUserDepartment($userId: uuid!, $deptId: uuid!) {
+    update_users_by_pk(pk_columns: {id: $userId}, _set: {department_id: $deptId}) {
+      id
+    }
+    update_departments_by_pk(pk_columns: {id: $deptId}, _set: {manager_id: $userId}) {
+      id
+    }
+  }
+`;
+
+export const CLEAR_DEPT_MANAGER = gql`
+  mutation ClearDeptManager($deptId: uuid!) {
+    update_departments_by_pk(pk_columns: {id: $deptId}, _set: {manager_id: null}) {
+      id
+    }
+  }
+`;
+
+export const CLEAR_USER_DEPT = gql`
+  mutation ClearUserDept($userId: uuid!) {
+    update_users_by_pk(pk_columns: {id: $userId}, _set: {department_id: null}) {
       id
     }
   }

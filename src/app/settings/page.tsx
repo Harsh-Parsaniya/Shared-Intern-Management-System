@@ -72,18 +72,11 @@ export default function SettingsPage() {
               </div>
               <h3 className="font-bold text-slate-900 text-lg">{name}</h3>
               <p className="text-sm text-slate-500 capitalize mb-6">{role}</p>
-              <button className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors">
-                Change Profile Photo
-              </button>
             </div>
 
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                 <h4 className="font-bold text-slate-800 text-sm mb-4">Security Status</h4>
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-500">Two-Factor Auth</span>
-                        <span className="px-2 py-1 bg-rose-50 text-rose-600 rounded-md font-bold">Disabled</span>
-                    </div>
                     <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-500">Last Login</span>
                         <span className="text-slate-900 font-bold">2 hours ago</span>

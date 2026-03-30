@@ -1,19 +1,53 @@
 "use client";
 
 import { useQuery } from "@apollo/client/react";
-import { GET_DASHBOARD_STATS, DashboardStats } from "@/lib/graphql";
+import { GET_DASHBOARD_STATS } from "@/lib/graphql";
 import { 
   Users, 
   UserCheck, 
   ClipboardList, 
   TrendingUp,
-  BarChart3,
   MessageSquare,
   Loader2
 } from "lucide-react";
+import { useMemo } from "react";
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
+} from "recharts";
 
+const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function AdminDashboardView() {
-  const { data, loading, error } = useQuery<DashboardStats>(GET_DASHBOARD_STATS);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, loading, error } = useQuery<any>(GET_DASHBOARD_STATS);
+
+  const chartData = useMemo(() => {
+    const allInterns = data?.interns || [];
+    
+    // Aggregate by department
+    const deptMap: Record<string, number> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    allInterns.forEach((intern: any) => {
+      const dept = intern.department?.name || "Unassigned";
+      deptMap[dept] = (deptMap[dept] || 0) + 1;
+    });
+    const byDepartment = Object.entries(deptMap).map(([name, value]) => ({ name, value }));
+
+    // Aggregate by college
+    const collegeMap: Record<string, number> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    allInterns.forEach((intern: any) => {
+      const college = intern.college_name || "Unknown";
+      collegeMap[college] = (collegeMap[college] || 0) + 1;
+    });
+    const byCollege = Object.entries(collegeMap)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+
+    return { byDepartment, byCollege };
+  }, [data]);
 
   if (loading) {
     return (
@@ -78,30 +112,76 @@ export function AdminDashboardView() {
         })}
       </div>
 
-      {/* Content Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 px-4 lg:px-0">
-        {/* Main Chart Area */}
-        <div className="lg:col-span-2 bg-white p-5 lg:p-8 rounded-3xl border border-slate-100 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-            <h3 className="text-base lg:text-lg font-bold text-slate-900 uppercase tracking-tight">Internship Trends</h3>
-            <select className="bg-slate-50 border border-slate-200 rounded-lg text-xs px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
-              <option>Last 6 Months</option>
-              <option>Last Year</option>
-            </select>
-          </div>
-          <div className="aspect-video lg:aspect-[16/9] w-full bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-200">
-             <div className="text-center px-4">
-               <BarChart3 className="mx-auto text-slate-300 mb-2 lg:w-12 lg:h-12" size={40} />
-               <p className="text-slate-400 text-xs lg:text-sm font-medium italic">Global metrics visualization</p>
-             </div>
-          </div>
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 px-4 lg:px-0">
+        {/* Pie Chart: Interns by Department */}
+        <div className="bg-white p-5 lg:p-8 rounded-3xl border border-slate-100 shadow-sm">
+          <h3 className="text-base lg:text-lg font-bold text-slate-900 uppercase tracking-tight mb-6">Interns by Department</h3>
+          {chartData.byDepartment.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={chartData.byDepartment}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={4}
+                  dataKey="value"
+                  label={({ name, value }) => `${name} (${value})`}
+                  labelLine={false}
+                >
+                  {chartData.byDepartment.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "13px", fontWeight: 600 }}
+                />
+                <Legend 
+                  verticalAlign="bottom"
+                  iconType="circle"
+                  wrapperStyle={{ fontSize: "12px", fontWeight: 700 }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-slate-400 text-sm italic">No intern data available</div>
+          )}
         </div>
 
-        {/* Recent Activity */}
+        {/* Bar Chart: Interns by College */}
+        <div className="bg-white p-5 lg:p-8 rounded-3xl border border-slate-100 shadow-sm">
+          <h3 className="text-base lg:text-lg font-bold text-slate-900 uppercase tracking-tight mb-6">Interns by College</h3>
+          {chartData.byCollege.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData.byCollege} layout="vertical" margin={{ left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fontWeight: 600, fill: "#94a3b8" }} />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  width={120}
+                  tick={{ fontSize: 11, fontWeight: 600, fill: "#475569" }}
+                />
+                <Tooltip 
+                  contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "13px", fontWeight: 600 }}
+                />
+                <Bar dataKey="count" fill="#6366f1" radius={[0, 8, 8, 0]} barSize={24} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-slate-400 text-sm italic">No intern data available</div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="px-4 lg:px-0">
         <div className="bg-white p-5 lg:p-8 rounded-3xl border border-slate-100 shadow-sm">
            <h3 className="text-base lg:text-lg font-bold text-slate-900 mb-6 uppercase tracking-tight">Program Activity</h3>
            <div className="space-y-6">
-             {data?.recent_interns?.map((intern) => (
+             {data?.recent_interns?.map((intern: { id: string; user: { name: string }; college_name: string }) => (
                <div key={intern.id} className="flex gap-4">
                  <div className="w-2 h-2 rounded-full bg-indigo-500 mt-2 shrink-0" />
                  <div>
