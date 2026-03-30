@@ -7,10 +7,6 @@ import {
   ADD_DEPARTMENT, 
   UPDATE_DEPARTMENT, 
   DELETE_DEPARTMENT,
-  GET_DEPARTMENT_USERS,
-  SYNC_USER_DEPARTMENT,
-  CLEAR_DEPT_MANAGER,
-  CLEAR_USER_DEPT,
   DepartmentsData,
   Department
 } from "@/lib/graphql";
@@ -24,71 +20,33 @@ import {
 } from "lucide-react";
 import { useState, useMemo } from "react";
 
-interface DeptUser {
-  id: string;
-  name: string;
-  email: string;
-}
-
 export default function DepartmentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
-  const [formData, setFormData] = useState({ name: "", manager_id: "" });
+  const [formData, setFormData] = useState({ name: "" });
 
   const { data, loading, refetch } = useQuery<DepartmentsData>(GET_DEPARTMENTS);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: usersData } = useQuery<any>(GET_DEPARTMENT_USERS);
   const [addDeptMutation] = useMutation(ADD_DEPARTMENT);
   const [updateDeptMutation] = useMutation(UPDATE_DEPARTMENT);
   const [deleteDeptMutation] = useMutation(DELETE_DEPARTMENT);
-  const [syncUserDeptMutation] = useMutation(SYNC_USER_DEPARTMENT);
-  const [clearUserDeptMutation] = useMutation(CLEAR_USER_DEPT);
 
   const departments = data?.departments || [];
-  const deptUsers: DeptUser[] = usersData?.users || [];
 
   const filteredDepts = useMemo(() => {
-    return departments.filter(dept => 
-      dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (dept.manager?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+    return departments.filter(dept =>
+      dept.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [departments, searchTerm]);
-
-  // Filter out managers already assigned to other departments
-  const availableManagers = useMemo(() => {
-    const assignedManagerIds = new Set(
-      departments
-        .filter(dept => dept.manager_id && dept.id !== selectedDept?.id)
-        .map(dept => dept.manager_id)
-    );
-    return deptUsers.filter(user => !assignedManagerIds.has(user.id));
-  }, [deptUsers, departments, selectedDept]);
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { data: addData } = await addDeptMutation({ 
-        variables: { 
-          name: formData.name,
-          manager_id: formData.manager_id || null
-        } 
-      }) as { data: { insert_departments_one: { id: string } } };
-
-      // Sync user side if manager is assigned
-      if (formData.manager_id) {
-        await syncUserDeptMutation({
-          variables: {
-            userId: formData.manager_id,
-            deptId: addData.insert_departments_one.id
-          }
-        });
-      }
-
+      await addDeptMutation({ variables: { name: formData.name } });
       setIsAddModalOpen(false);
-      setFormData({ name: "", manager_id: "" });
+      setFormData({ name: "" });
       refetch();
     } catch (err) {
       console.error(err);
@@ -98,7 +56,7 @@ export default function DepartmentsPage() {
 
   const handleEditClick = (dept: Department) => {
     setSelectedDept(dept);
-    setFormData({ name: dept.name, manager_id: dept.manager_id || "" });
+    setFormData({ name: dept.name });
     setIsEditModalOpen(true);
   };
 
@@ -106,31 +64,7 @@ export default function DepartmentsPage() {
     e.preventDefault();
     if (!selectedDept) return;
     try {
-      // 1. If manager changed, clear old manager's department
-      if (selectedDept.manager_id && selectedDept.manager_id !== formData.manager_id) {
-        await clearUserDeptMutation({
-          variables: { userId: selectedDept.manager_id }
-        });
-      }
-
-      // 2. Update department and sync new manager
-      await updateDeptMutation({ 
-        variables: { 
-          id: selectedDept.id, 
-          name: formData.name,
-          manager_id: formData.manager_id || null
-        } 
-      });
-
-      if (formData.manager_id) {
-        await syncUserDeptMutation({
-          variables: {
-            userId: formData.manager_id,
-            deptId: selectedDept.id
-          }
-        });
-      }
-
+      await updateDeptMutation({ variables: { id: selectedDept.id, name: formData.name } });
       setIsEditModalOpen(false);
       refetch();
     } catch (err) {
@@ -189,7 +123,7 @@ export default function DepartmentsPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
             <input 
               type="text"
-              placeholder="Search by department or manager name..."
+              placeholder="Search by department name..."
               className="w-full pl-12 pr-6 py-3 bg-slate-50 border-none rounded-xl text-sm text-slate-900 outline-none ring-2 ring-transparent focus:ring-indigo-500/10 transition-all placeholder:text-slate-400 font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -203,17 +137,15 @@ export default function DepartmentsPage() {
               <thead>
                 <tr className="bg-slate-50/50">
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Department Name</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Manager</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Manager Email</th>
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Intern Count</th>
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400 font-bold text-sm">Loading departments...</td></tr>
+                  <tr><td colSpan={3} className="px-6 py-10 text-center text-slate-400 font-bold text-sm">Loading departments...</td></tr>
                 ) : filteredDepts.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400 font-bold text-sm italic">No departments found</td></tr>
+                  <tr><td colSpan={3} className="px-6 py-10 text-center text-slate-400 font-bold text-sm italic">No departments found</td></tr>
                 ) : filteredDepts.map((dept) => (
                   <tr key={dept.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
@@ -223,16 +155,6 @@ export default function DepartmentsPage() {
                         </div>
                         <span className="text-sm font-bold text-slate-800">{dept.name}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-slate-700">
-                        {dept.manager?.name || <span className="text-slate-400 italic">Not assigned</span>}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-slate-500">
-                        {dept.manager?.email || <span className="text-slate-400 italic">—</span>}
-                      </span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-black">
@@ -290,20 +212,6 @@ export default function DepartmentsPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Manager (Department Head)</label>
-                <select
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl text-sm text-slate-900 outline-none focus:border-indigo-500/10 focus:bg-white transition-all font-bold"
-                  value={formData.manager_id}
-                  onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
-                >
-                  <option value="">Select a Manager</option>
-                  {availableManagers.map((user) => (
-                    <option key={user.id} value={user.id}>{user.name} — {user.email}</option>
-                  ))}
-                </select>
               </div>
 
               <div className="flex gap-3 pt-2">

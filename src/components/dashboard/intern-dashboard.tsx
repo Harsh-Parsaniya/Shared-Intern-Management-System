@@ -115,7 +115,7 @@ export function InternDashboardView({ userId }: { userId: string }) {
                        {new Date(fb.created_at).toLocaleDateString()}
                      </span>
                    </div>
-                   <p className="text-xs lg:text-sm text-slate-600 line-clamp-2 italic font-medium">"{fb.message}"</p>
+                   <p className="text-xs lg:text-sm text-slate-600 line-clamp-2 italic font-medium">{fb.message}</p>
                 </div>
              )) : (
                <div className="text-center py-10 text-slate-400">

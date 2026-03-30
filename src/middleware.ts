@@ -31,7 +31,27 @@ export async function middleware(request: NextRequest) {
 
   // 4. Role-based checks
   const role = payload.role;
-  
+
+  // Interns can only access /intern/* routes
+  if (pathname.startsWith("/intern/") && role !== "intern") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Redirect interns away from admin routes to their own panel
+  if (!pathname.startsWith("/intern/") && role === "intern") {
+    return NextResponse.redirect(new URL("/intern/dashboard", request.url));
+  }
+
+  // Dept users can only access /dept/* routes
+  if (pathname.startsWith("/dept") && role !== "department") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Redirect dept users away from admin routes to their own panel
+  if (!pathname.startsWith("/dept") && role === "department") {
+    return NextResponse.redirect(new URL("/dept/dashboard", request.url));
+  }
+
   // Admin-only routes
   const adminOnlyRoutes = ["/departments", "/settings"];
   if (adminOnlyRoutes.some(route => pathname.startsWith(route)) && role !== "admin") {
@@ -41,7 +61,7 @@ export async function middleware(request: NextRequest) {
   // Management routes (Admin & Dept only)
   const managementRoutes = ["/interns", "/feedback"];
   if (managementRoutes.some(route => pathname.startsWith(route)) && role === "intern") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/intern/dashboard", request.url));
   }
 
   return NextResponse.next();

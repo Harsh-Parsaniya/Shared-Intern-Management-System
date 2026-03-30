@@ -19,6 +19,9 @@ CREATE TABLE users (
     department_id UUID REFERENCES departments(id) ON DELETE SET NULL
 );
 
+-- Add manager_id to departments after users table exists (avoids circular reference)
+ALTER TABLE departments ADD COLUMN IF NOT EXISTS manager_id UUID REFERENCES users(id) ON DELETE SET NULL;
+
 -- 3. Interns Table
 CREATE TABLE interns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -35,5 +38,6 @@ CREATE TABLE feedback (
     intern_id UUID NOT NULL REFERENCES interns(id) ON DELETE CASCADE,
     message TEXT NOT NULL,
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    submitted_by_role TEXT NOT NULL DEFAULT 'intern' CHECK (submitted_by_role IN ('intern', 'department')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

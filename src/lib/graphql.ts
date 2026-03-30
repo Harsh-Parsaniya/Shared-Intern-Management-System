@@ -66,12 +66,15 @@ export interface Feedback {
   message: string;
   rating: number;
   created_at: string;
+  submitted_by_role: string;
   intern: {
+    id: string;
     user: {
       name: string;
     };
     department_id: string;
     department: {
+      id: string;
       name: string;
     } | null;
   };
@@ -139,12 +142,15 @@ export const GET_FEEDBACK = gql`
       message
       rating
       created_at
+      submitted_by_role
       intern {
+        id
+        department_id
         user {
           name
         }
-        department_id
         department {
+          id
           name
         }
       }
@@ -153,11 +159,12 @@ export const GET_FEEDBACK = gql`
 `;
 
 export const SUBMIT_FEEDBACK = gql`
-  mutation SubmitFeedback($internId: uuid!, $message: String!, $rating: Int!) {
+  mutation SubmitFeedback($internId: uuid!, $message: String!, $rating: Int!, $submittedByRole: String!) {
     insert_feedback_one(object: {
       intern_id: $internId,
       message: $message,
-      rating: $rating
+      rating: $rating,
+      submitted_by_role: $submittedByRole
     }) {
       id
     }
@@ -169,12 +176,6 @@ export const GET_DEPARTMENTS = gql`
     departments(order_by: {name: asc}) {
       id
       name
-      manager_id
-      manager {
-        id
-        name
-        email
-      }
       interns_aggregate {
         aggregate {
           count
@@ -236,6 +237,15 @@ export const GET_DEPT_DASHBOARD_STATS = gql`
   }
 `;
 
+export const GET_DEPARTMENT_BY_ID = gql`
+  query GetDepartmentById($id: uuid!) {
+    departments_by_pk(id: $id) {
+      id
+      name
+    }
+  }
+`;
+
 export const GET_INTERN_DASHBOARD_DATA = gql`
   query GetInternDashboardData($userId: uuid!) {
     interns(where: {user_id: {_eq: $userId}}) {
@@ -292,8 +302,8 @@ export const DELETE_INTERN = gql`
 `;
 
 export const ADD_DEPARTMENT = gql`
-  mutation AddDepartment($name: String!, $manager_id: uuid) {
-    insert_departments_one(object: {name: $name, manager_id: $manager_id}) {
+  mutation AddDepartment($name: String!) {
+    insert_departments_one(object: {name: $name}) {
       id
       name
     }
@@ -301,8 +311,8 @@ export const ADD_DEPARTMENT = gql`
 `;
 
 export const UPDATE_DEPARTMENT = gql`
-  mutation UpdateDepartment($id: uuid!, $name: String!, $manager_id: uuid) {
-    update_departments_by_pk(pk_columns: {id: $id}, _set: {name: $name, manager_id: $manager_id}) {
+  mutation UpdateDepartment($id: uuid!, $name: String!) {
+    update_departments_by_pk(pk_columns: {id: $id}, _set: {name: $name}) {
       id
       name
     }
@@ -369,16 +379,13 @@ export const SYNC_USER_DEPARTMENT = gql`
     update_users_by_pk(pk_columns: {id: $userId}, _set: {department_id: $deptId}) {
       id
     }
-    update_departments_by_pk(pk_columns: {id: $deptId}, _set: {manager_id: $userId}) {
-      id
-    }
   }
 `;
 
 export const CLEAR_DEPT_MANAGER = gql`
   mutation ClearDeptManager($deptId: uuid!) {
-    update_departments_by_pk(pk_columns: {id: $deptId}, _set: {manager_id: null}) {
-      id
+    update_users(where: {department_id: {_eq: $deptId}}, _set: {department_id: null}) {
+      affected_rows
     }
   }
 `;

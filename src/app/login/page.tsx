@@ -20,7 +20,9 @@ export default function LoginPage() {
       const res = await loginAction(formData);
 
       if (res.success) {
-        router.push("/dashboard");
+        if (res.role === "intern") router.push("/intern/dashboard");
+        else if (res.role === "department") router.push("/dept/dashboard");
+        else router.push("/dashboard");
       } else {
         setError(res.error || "An error occurred");
       }
