@@ -11,7 +11,8 @@ import {
   X,
   Home,
   Building2,
-  UserCog
+  UserCog,
+  ClipboardList
 } from "lucide-react";
 import { useState } from "react";
 import { clsx, type ClassValue } from "clsx";
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { name: "Departments", href: "/departments", icon: Building2, roles: ["admin", "department"] },
   { name: "Managers", href: "/managers", icon: UserCog, roles: ["admin"] },
   { name: "Interns", href: "/interns", icon: Users, roles: ["admin", "department", "intern"] },
+  { name: "Tasks", href: "/tasks", icon: ClipboardList, roles: ["admin"] },
   { name: "Feedback", href: "/feedback", icon: MessageSquare, roles: ["admin", "department", "intern"] },
   { name: "Settings", href: "/settings", icon: Settings, roles: ["admin"] },
 ];

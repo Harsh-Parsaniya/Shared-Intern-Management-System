@@ -171,6 +171,18 @@ export const SUBMIT_FEEDBACK = gql`
   }
 `;
 
+export const GET_INTERN_FEEDBACK = gql`
+  query GetInternFeedback($internId: uuid!) {
+    feedback(where: {intern_id: {_eq: $internId}}, order_by: {created_at: desc}) {
+      id
+      message
+      rating
+      created_at
+      submitted_by_role
+    }
+  }
+`;
+
 export const GET_DEPARTMENTS = gql`
   query GetDepartments {
     departments(order_by: {name: asc}) {
@@ -393,6 +405,227 @@ export const CLEAR_DEPT_MANAGER = gql`
 export const CLEAR_USER_DEPT = gql`
   mutation ClearUserDept($userId: uuid!) {
     update_users_by_pk(pk_columns: {id: $userId}, _set: {department_id: null}) {
+      id
+    }
+  }
+`;
+
+// ============================================================
+// TASKS
+// ============================================================
+
+export interface TaskAssignment {
+  id: string;
+  status: string;
+  created_at: string;
+  intern: {
+    id: string;
+    user: { name: string };
+  };
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  deadline: string;
+  priority: string;
+  status: string;
+  created_at: string;
+  department: { id: string; name: string } | null;
+  task_assignments: TaskAssignment[];
+}
+
+export interface TaskComment {
+  id: string;
+  message: string;
+  created_at: string;
+  user: { name: string; role: string };
+}
+
+export interface InternTaskAssignment {
+  id: string;
+  status: string;
+  created_at: string;
+  task: {
+    id: string;
+    title: string;
+    description: string;
+    deadline: string;
+    priority: string;
+    status: string;
+    department: { id: string; name: string } | null;
+  };
+}
+
+export const GET_DEPT_TASKS = gql`
+  query GetDeptTasks($deptId: uuid!) {
+    tasks(where: {department_id: {_eq: $deptId}}, order_by: {created_at: desc}) {
+      id
+      title
+      description
+      deadline
+      priority
+      status
+      created_at
+      task_assignments {
+        id
+        status
+        intern {
+          id
+          user { name }
+        }
+      }
+    }
+  }
+`;
+
+export const GET_INTERN_TASKS = gql`
+  query GetInternTasks($internId: uuid!) {
+    task_assignments(
+      where: {intern_id: {_eq: $internId}},
+      order_by: {task: {deadline: asc}}
+    ) {
+      id
+      status
+      created_at
+      task {
+        id
+        title
+        description
+        deadline
+        priority
+        status
+        department { id name }
+      }
+    }
+  }
+`;
+
+export const GET_ALL_TASKS = gql`
+  query GetAllTasks {
+    tasks(order_by: {created_at: desc}) {
+      id
+      title
+      description
+      deadline
+      priority
+      status
+      created_at
+      department { id name }
+      task_assignments {
+        id
+        status
+        intern {
+          id
+          user { name }
+        }
+      }
+    }
+  }
+`;
+
+export const GET_TASK_COMMENTS = gql`
+  query GetTaskComments($taskId: uuid!) {
+    task_comments(
+      where: {task_id: {_eq: $taskId}},
+      order_by: {created_at: asc}
+    ) {
+      id
+      message
+      created_at
+      user { name role }
+    }
+  }
+`;
+
+export const CREATE_TASK = gql`
+  mutation CreateTask(
+    $title: String!,
+    $description: String,
+    $deadline: date!,
+    $priority: String!,
+    $deptId: uuid!,
+    $userId: uuid!,
+    $assignments: [task_assignments_insert_input!]!
+  ) {
+    insert_tasks_one(object: {
+      title: $title,
+      description: $description,
+      deadline: $deadline,
+      priority: $priority,
+      status: "pending",
+      department_id: $deptId,
+      created_by_user_id: $userId,
+      task_assignments: { data: $assignments }
+    }) {
+      id
+      title
+    }
+  }
+`;
+
+export const UPDATE_TASK_STATUS = gql`
+  mutation UpdateTaskStatus($id: uuid!, $status: String!) {
+    update_tasks_by_pk(pk_columns: {id: $id}, _set: {status: $status}) {
+      id
+      status
+    }
+  }
+`;
+
+export const UPDATE_ASSIGNMENT_STATUS = gql`
+  mutation UpdateAssignmentStatus($id: uuid!, $status: String!) {
+    update_task_assignments_by_pk(pk_columns: {id: $id}, _set: {status: $status}) {
+      id
+      status
+    }
+  }
+`;
+
+export const ADD_TASK_COMMENT = gql`
+  mutation AddTaskComment($taskId: uuid!, $userId: uuid!, $message: String!) {
+    insert_task_comments_one(object: {
+      task_id: $taskId,
+      user_id: $userId,
+      message: $message
+    }) {
+      id
+      message
+      created_at
+      user { name role }
+    }
+  }
+`;
+
+export const ADD_TASK_ASSIGNMENT = gql`
+  mutation AddTaskAssignment($taskId: uuid!, $internId: uuid!) {
+    insert_task_assignments_one(object: {
+      task_id: $taskId,
+      intern_id: $internId,
+      status: "pending"
+    }) {
+      id
+      status
+      intern {
+        id
+        user { name }
+      }
+    }
+  }
+`;
+
+export const REMOVE_TASK_ASSIGNMENT = gql`
+  mutation RemoveTaskAssignment($id: uuid!) {
+    delete_task_assignments_by_pk(id: $id) {
+      id
+    }
+  }
+`;
+
+export const DELETE_TASK = gql`
+  mutation DeleteTask($id: uuid!) {
+    delete_tasks_by_pk(id: $id) {
       id
     }
   }

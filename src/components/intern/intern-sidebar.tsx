@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, User, MessageSquare, LogOut, Menu, X } from "lucide-react";
+import { Home, User, MessageSquare, LogOut, Menu, X, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
@@ -10,6 +10,7 @@ import { RootState } from "@/store";
 const NAV_LINKS = [
   { name: "My Dashboard", href: "/intern/dashboard", icon: Home },
   { name: "My Profile", href: "/intern/profile", icon: User },
+  { name: "My Tasks", href: "/intern/tasks", icon: ClipboardList },
   { name: "Give Feedback", href: "/intern/feedback", icon: MessageSquare },
 ];
 
