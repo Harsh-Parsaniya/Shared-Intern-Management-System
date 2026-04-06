@@ -41,7 +41,8 @@ export function InternSidebar() {
         <div className="intern-sidebar-inner">
 
           {/* Logo */}
-          <Link href="/intern/dashboard" className="intern-logo-link">
+          <Link href="/intern/dashboard" className="intern-logo-link intern-logo-with-image">
+            <img src="/next.svg" alt="IMS logo" className="h-10 w-10" />
             <h1 className="intern-logo-text">IMS Intern</h1>
           </Link>
 

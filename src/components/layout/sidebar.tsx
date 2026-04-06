@@ -62,10 +62,12 @@ export function Sidebar({ role }: { role: string }) {
       )}>
         <div className="flex flex-col h-full">
           {/* Logo Section */}
-          <Link href="/dashboard" className="flex items-center justify-center h-20 border-b border-slate-100 hover:bg-slate-50 transition-colors">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-              IMS Admin
-            </h1>
+          <Link href="/dashboard" className="flex items-center justify-center h-20 border-b border-slate-100 hover:bg-slate-50 transition-colors gap-3">
+            <img src="/next.svg" alt="IMS logo" className="h-10 w-10" />
+            <div className="text-center">
+              <p className="text-lg font-bold text-slate-900">IMS Admin</p>
+              <p className="text-xs text-slate-500">Intern Management</p>
+            </div>
           </Link>
 
           {/* Navigation Items */}

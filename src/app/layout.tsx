@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Intern Management System",
   description: "Next.js + Hasura Intern Management System",
+  icons: {
+    icon: "/next.svg",
+  },
 };
 
 export default function RootLayout({

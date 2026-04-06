@@ -27,7 +27,7 @@ export async function loginAction(formData: FormData) {
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
-      return { success: false, error: "Invalid email or password" };
+      return { success: false, error: "Invalid password" };
     }
 
     const token = await createToken({

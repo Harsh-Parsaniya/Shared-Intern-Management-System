@@ -51,6 +51,8 @@ export function AdminDashboardView() {
 
   if (loading) {
     return (
+      <>
+        <ChatBotWidget />
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="animate-spin text-indigo-600" size={48} />
       </div>
@@ -59,6 +61,8 @@ export function AdminDashboardView() {
 
   if (error) {
     return (
+      <>
+        <ChatBotWidget />
       <div className="p-8 bg-rose-50 border border-rose-100 rounded-3xl text-rose-600">
         <h2 className="text-lg font-bold">Error loading admin dashboard</h2>
         <p className="mt-2 text-sm">{error.message}</p>
@@ -75,6 +79,14 @@ export function AdminDashboardView() {
 
   return (
     <div className="space-y-6 lg:space-y-8 animate-in fade-in duration-500">
+
+
+      {/* ChatBot */}
+
+      <ChatBotWidget/>
+
+
+
       {/* Header */}
       <div className="px-4 lg:px-0">
         <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">

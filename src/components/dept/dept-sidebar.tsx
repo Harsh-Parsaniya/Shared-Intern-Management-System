@@ -41,7 +41,8 @@ export function DeptSidebar() {
         <div className="dept-sidebar-inner">
 
           {/* Logo — shows "IMS Department-Name" */}
-          <Link href="/dept/dashboard" className="dept-logo-link">
+          <Link href="/dept/dashboard" className="dept-logo-link dept-logo-with-image">
+            <img src="/next.svg" alt="IMS logo" className="h-10 w-10" />
             <h1 className="dept-logo-text">
               IMS {deptName || "Department"}
             </h1>
